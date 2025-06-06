@@ -4,9 +4,8 @@ from django.views import View
 from django.views.generic import ListView
 from django.db import transaction
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from serializers_pkg import serializers
 
-
-from .serializers import HallCreateSerializer
 from .models import Hall, Seat
 
 
@@ -21,7 +20,7 @@ class HallCreateView(LoginRequiredMixin, UserPassesTestMixin, View):
 class HallSaveView(LoginRequiredMixin, UserPassesTestMixin, View):
     def post(self, request):
         try:
-            serializer = HallCreateSerializer(data=request.POST, files=request.FILES)
+            serializer = serializers.HallCreateSerializer(data=request.POST, files=request.FILES)
             if not serializer.is_valid():
                 return JsonResponse({'errors': serializer.errors}, status=400)
 

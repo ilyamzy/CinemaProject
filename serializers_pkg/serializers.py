@@ -1,6 +1,21 @@
 import json
 
 
+class GenreSerializer:
+    def __init__(self, data=None):
+        self.data = data or {}
+        self.errors = {}
+        self.validated_data = {}
+
+    def is_valid(self):
+        name = self.data.get('name', '').strip()
+        if not name:
+            self.errors['name'] = 'Это поле не может быть пустым.'
+            return False
+        self.validated_data['name'] = name
+        return True
+
+
 class HallCreateSerializer:
     def __init__(self, data: dict, files=None):
         self.data = data
@@ -8,7 +23,7 @@ class HallCreateSerializer:
         self.validated_data = None
         self.errors = {}
 
-    def is_valid(self) -> bool:
+    def is_valid(self):
         try:
             name = self.data.get("name", "").strip()
             try:

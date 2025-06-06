@@ -1,11 +1,13 @@
 import json
+
+
 from django.http import JsonResponse
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_POST
 from django.urls import reverse_lazy
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-
+from serializers_pkg import serializers
 
 from .models import Movie, Genre
 from .forms import MovieAddForm, MovieEditForm
@@ -53,16 +55,13 @@ class MovieCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 @method_decorator(require_POST, name='dispatch')
 class AddGenreView(View):
     def post(self, request, *args, **kwargs):
-        try:
-            data = json.loads(request.body)
-            name = data.get('name', '').strip()
-            if not name:
-                return JsonResponse({'success': False, 'error': 'Пустое имя'}, status=400)
 
-            genre, created = Genre.objects.get_or_create(name=name)
-            return JsonResponse({'success': True, 'id': genre.id})
-        except json.JSONDecodeError:
-            return JsonResponse({'success': False, 'error': 'Некорректный JSON'}, status=400)
+        serializer = serializers.GenreSerializer(data=request.body)
+        if not serializer.is_valid():
+            return JsonResponse({'success': False, 'errors': serializer.errors}, status=400)
+
+        genre, created = Genre.objects.get_or_create(name=serializer.validated_data['name'])
+        return JsonResponse({'success': True, 'id': genre.id})
 
 
 class AllMoviesView(ListView):
