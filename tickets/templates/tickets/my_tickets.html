@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>Мои билеты</h1>
+
+<style>
+  /* Стили для табов */
+  .tabs {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 1rem;
+  }
+  .tab {
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-bottom: none;
+    font-weight: 600;
+    color: #555;
+    transition: color 0.3s, border-color 0.3s;
+  }
+  .tab:hover {
+    color: #000;
+  }
+  .tab.active {
+    border: 1px solid #ddd;
+    border-bottom: 2px solid white;
+    background-color: white;
+    color: #000;
+    font-weight: 700;
+  }
+  .tab-content {
+    border: 1px solid #ddd;
+    padding: 1rem 1.5rem;
+    background-color: white;
+    border-radius: 0 5px 5px 5px;
+  }
+  ul {
+    list-style-type: none;
+    padding-left: 0;
+  }
+  li {
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  li:last-child {
+    border-bottom: none;
+  }
+  .ticket-info {
+    max-width: 75%;
+  }
+  form button {
+    background-color: #4CAF50;
+    border: none;
+    color: white;
+    padding: 6px 12px;
+    font-size: 0.9rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  form button:hover {
+    background-color: #45a049;
+  }
+  .no-tickets {
+    color: #777;
+    font-style: italic;
+  }
+</style>
+
+<div class="tabs">
+  <div class="tab active" data-tab="booked">Забронированные</div>
+  <div class="tab" data-tab="active">Действующие</div>
+  <div class="tab" data-tab="expired">Недействительные</div>
+</div>
+
+<div id="booked" class="tab-content">
+  <h2>Забронированные билеты</h2>
+  {% if booked %}
+    <ul>
+      {% for ticket in booked %}
+        <li>
+          <div class="ticket-info">
+            Зал: {{ ticket.session.hall.name }}, ряд {{ ticket.seat.row }}, место {{ ticket.seat.col }}<br>
+            Время: {{ ticket.session.start_time|date:"d.m.Y H:i" }}<br>
+            Цена: {% if ticket.seat.seat_type == 'double' %}{{ ticket.session.double_seat_price }}{% else %}{{ ticket.session.single_seat_price }}{% endif %} руб.
+          </div>
+          <form method="post" action="{% url 'pay_ticket' ticket.id %}">
+            {% csrf_token %}
+            <button type="submit">Оплатить</button>
+          </form>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="no-tickets">Нет забронированных билетов.</p>
+  {% endif %}
+</div>
+
+<div id="active" class="tab-content" style="display:none;">
+  <h2>Действующие билеты</h2>
+  {% if active %}
+    <ul>
+      {% for ticket in active %}
+        <li>
+          Зал: {{ ticket.session.hall.name }}, ряд {{ ticket.seat.row }}, место {{ ticket.seat.col }}<br>
+          Время: {{ ticket.session.start_time|date:"d.m.Y H:i" }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="no-tickets">Нет действующих билетов.</p>
+  {% endif %}
+</div>
+
+<div id="expired" class="tab-content" style="display:none;">
+  <h2>Недействительные билеты</h2>
+  {% if expired %}
+    <ul>
+      {% for ticket in expired %}
+        <li>
+          Зал: {{ ticket.session.hall.name }}, ряд {{ ticket.seat.row }}, место {{ ticket.seat.col }}<br>
+          Время: {{ ticket.session.start_time|date:"d.m.Y H:i" }}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="no-tickets">Нет недействительных билетов.</p>
+  {% endif %}
+</div>
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const contents = document.querySelectorAll('.tab-content');
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Активируем вкладку
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      // Показываем соответствующий контент
+      const target = tab.getAttribute('data-tab');
+      contents.forEach(c => {
+        c.style.display = (c.id === target) ? 'block' : 'none';
+      });
+    });
+  });
+</script>
+
+{% endblock %}

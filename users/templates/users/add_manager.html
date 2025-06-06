@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Добавление менеджера</h1>
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <p>
+        {{ field.label_tag }}<br>
+        {{ field }}
+        {% if field.errors %}
+          <div class="form-error">{{ field.errors }}</div>
+        {% endif %}
+      </p>
+    {% endfor %}
+    {% if messages %}
+      <div id="toast-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999;">
+        {% for message in messages %}
+          <div class="toast {{ message.tags }}" style="background: #333; color: white; padding: 10px 20px; margin-bottom: 10px; border-radius: 5px; opacity: 0.9;">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+    <button type="submit">Создать</button>
+  </form>
+{% endblock %}

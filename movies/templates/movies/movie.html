@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    body {
+        background-color: #f0f2f5;
+        margin: 0;
+        padding: 0;
+    }
+
+    .movie-title-wrapper {
+        text-align: center;
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+
+    .movie-title-wrapper h2 {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #222;
+        margin: 0;
+    }
+
+    .movie-container {
+        max-width: 95%;
+        margin: 0 auto 60px auto;
+        background-color: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        display: flex;
+        gap: 50px;
+        padding: 50px;
+        flex-wrap: wrap;
+    }
+
+    .movie-poster {
+        flex: 0 0 450px;
+        max-width: 450px;
+    }
+
+    .movie-poster img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        object-fit: contain;
+        background: #ddd;
+    }
+
+    .movie-details {
+        flex: 1;
+        min-width: 400px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .movie-info p {
+        margin-bottom: 18px;
+        font-size: 1.2rem;
+        line-height: 1.7;
+    }
+
+    .movie-info strong {
+        color: #333;
+    }
+
+    .sessions-section {
+        margin-top: auto;
+    }
+
+    .sessions-section h3 {
+        margin-top: 40px;
+        margin-bottom: 20px;
+        font-size: 1.8rem;
+    }
+
+    .sessions-section ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .sessions-section li {
+        background-color: #f1f3f5;
+        padding: 14px 20px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        font-size: 1.05rem;
+    }
+
+    @media (max-width: 992px) {
+        .movie-container {
+            flex-direction: column;
+            padding: 30px;
+        }
+
+        .movie-poster, .movie-details {
+            max-width: 100%;
+        }
+
+        .movie-title-wrapper h2 {
+            font-size: 2.4rem;
+        }
+    }
+
+    .edit-button-wrapper {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .edit-movie-button {
+        background-color: #0d6efd;
+        color: white;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        display: inline-block;
+    }
+
+    .edit-movie-button:hover {
+        background-color: #0a58ca;
+        transform: translateY(-2px);
+    }
+
+</style>
+
+<div class="movie-title-wrapper">
+    <h2>{{ movie.title }}</h2>
+</div>
+
+<div class="movie-container">
+    <div class="movie-poster">
+        <img src="{{ movie.poster.url }}" alt="{{ movie.title }}">
+    </div>
+    <div class="movie-details">
+        <div class="movie-info">
+            <p><strong>Страна:</strong> {{ movie.country }}</p>
+            <p><strong>Жанры:</strong> {{ movie.genre.all|join:", " }}</p>
+            <p><strong>Длительность:</strong> {{ movie.duration }}</p>
+            <p><strong>Бюджет:</strong> {{ movie.budget }} $</p>
+            <p><strong>Дата выхода:</strong> {{ movie.release_date }}</p>
+            <p><strong>Рейтинг:</strong> {{ movie.rating }}</p>
+            <p><strong>Описание:</strong> {{ movie.description }}</p>
+        </div>
+
+        {% if request.user.is_authenticated and request.user.role in 'admin manager' %}
+        <div class="edit-button-wrapper">
+            <a href="{% url 'edit_movie' movie.pk %}?next={{ request.path }}" class="edit-movie-button">Редактировать информацию</a>
+        </div>
+        {% endif %}
+
+        <div class="sessions-section">
+            <h3>Ближайшие сеансы</h3>
+            <ul>
+                {% for session in sessions %}
+                    <li>{{ session.start_time }} — зал {{ session.hall.name }} — {{ session.price }} BYN</li>
+                {% empty %}
+                    <li>Нет предстоящих сеансов</li>
+                {% endfor %}
+            </ul>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

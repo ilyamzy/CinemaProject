@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  form {
+    max-width: 600px;
+    margin: 20px auto;
+    font-family: Arial, sans-serif;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-weight: bold;
+    margin-top: 12px;
+    margin-bottom: 5px;
+  }
+
+  input[type="datetime-local"] {
+    width: 100%;
+    padding: 8px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  input[type="time"],
+  input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  button {
+    margin-top: 20px;
+    padding: 10px 15px;
+    font-size: 1em;
+    cursor: pointer;
+  }
+
+  .option-box {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 3px;
+    border-radius: 15px;
+    background-color: #eee;
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    font-size: 0.9em;
+  }
+
+  .option-box.selected {
+    background-color: #007BFF;
+    color: white;
+  }
+
+  .option-header {
+    margin-top: 12px;
+    font-weight: bold;
+  }
+</style>
+
+<h1>Добавить сеанс</h1>
+
+<form method="post" id="session_form">
+  {% csrf_token %}
+
+  <label class="option-header">Фильм</label>
+  <div id="movie-select">
+    {% for movie in movies %}
+      <div class="option-box" data-id="{{ movie.id }}">{{ movie.title }}</div>
+    {% endfor %}
+  </div>
+
+  <label class="option-header">Зал</label>
+  <div id="hall-select">
+    {% for hall in halls %}
+      <div class="option-box" data-id="{{ hall.id }}">{{ hall.name }}</div>
+    {% endfor %}
+  </div>
+
+  <input type="hidden" name="movie" id="movie-input">
+  <input type="hidden" name="hall" id="hall-input">
+
+  <label for="{{ form.start_time.id_for_label }}">Начало</label>
+  {{ form.start_time }}
+
+  <label for="{{ form.single_seat_price.id_for_label }}">Цена за одиночное место (BYN)</label>
+  {{ form.single_seat_price }}
+
+  <label for="{{ form.double_seat_price.id_for_label }}">Цена за двойное место (BYN)</label>
+  {{ form.double_seat_price }}
+
+  <button type="submit">Добавить</button>
+</form>
+
+<script>
+  function setupSingleSelect(containerId, inputId) {
+    const container = document.getElementById(containerId);
+    const input = document.getElementById(inputId);
+    const options = container.querySelectorAll('.option-box');
+
+    options.forEach(option => {
+      option.addEventListener('click', () => {
+        options.forEach(opt => opt.classList.remove('selected'));
+        option.classList.add('selected');
+        input.value = option.dataset.id;
+      });
+    });
+  }
+
+  setupSingleSelect('movie-select', 'movie-input');
+  setupSingleSelect('hall-select', 'hall-input');
+
+  document.getElementById('session_form').addEventListener('submit', function(event) {
+    const movie = document.getElementById('movie-input').value;
+    const hall = document.getElementById('hall-input').value;
+    if (!movie || !hall) {
+      event.preventDefault();
+      alert('Пожалуйста, выберите фильм и зал.');
+    }
+  });
+
+</script>
+
+{% endblock %}

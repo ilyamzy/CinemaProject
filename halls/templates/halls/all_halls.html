@@ -1,0 +1,240 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .hall-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 40px;
+        margin-top: 30px;
+    }
+
+    .hall-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        background-color: #ffffff;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .hall-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .hall-card img {
+        width: 100%;
+        height: 500px;
+        object-fit: cover;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .hall-name {
+        position: absolute;
+        bottom: 50px;
+        left: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        text-align: center;
+        padding: 10px;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        pointer-events: none;
+    }
+
+    .overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+        overflow: hidden;
+        transition: height 0.3s ease;
+        display: flex;
+    }
+
+    .hall-card:hover .overlay {
+        height: 50px;
+    }
+
+    .btn-form {
+        margin: 0;
+        padding: 0;
+        width: 50%;
+        height: 100%;
+        display: flex;
+    }
+
+    .btn {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.3s ease;
+        padding: 0;
+    }
+
+    .btn.edit {
+        background-color: #0d6efd;
+        border-bottom-left-radius: 12px;
+        text-decoration: none;
+    }
+
+    .btn.edit:hover {
+        background-color: #0a58ca;
+    }
+
+    .btn.danger {
+        background-color: #dc3545;
+        border-bottom-right-radius: 12px;
+    }
+
+    .btn.danger:hover {
+        background-color: #b02a37;
+    }
+
+    button.btn {
+        all: unset;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background: #dc3545;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        border-bottom-right-radius: 12px;
+        cursor: pointer;
+        user-select: none;
+        box-sizing: border-box;
+    }
+
+    .add-button-wrapper {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .add-hall-button {
+        background-color: #0d6efd;
+        color: white;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        display: inline-block;
+    }
+
+    .add-hall-button:hover {
+        background-color: #0a58ca;
+        transform: translateY(-2px);
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 10px;
+        margin-top: 10px;
+    }
+
+</style>
+
+<h1>Все залы</h1>
+
+<div class="add-button-wrapper">
+    {% if request.user.is_authenticated and request.user.role in 'manager admin' %}
+        <a href="{% url 'hall_create' %}?next={{ request.path }}" class="add-hall-button">Добавить зал</a>
+    {% endif %}
+</div>
+
+<div class="hall-grid">
+    {% for hall in all_halls %}
+    <div class="hall-card">
+        <a href="{% url 'hall_details' hall.pk %}">
+            <img src="{{ hall.icon.url }}" alt="{{ hall.name }}">
+        </a>
+        <div class="hall-name">{{ hall.name }}</div>
+        {% if request.user.is_authenticated and request.user.role in 'manager admin' %}
+        <div class="overlay">
+            <div class="btn-form">
+                <a href="#" class="btn edit">Изменить</a>
+            </div>
+            <form method="post" action="{% url 'delete_hall' hall.pk %}" class="btn-form">
+                {% csrf_token %}
+                <button type="button" class="btn danger delete_hall" data-id="{{ hall.pk }}">Удалить</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    document.querySelectorAll('.delete_hall').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const hallId = this.dataset.id;
+            const card = this.closest('.hall-card');
+
+            if (!confirm("Вы уверены, что хотите удалить зал?")) return;
+
+            fetch(`/halls/${hallId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        card.remove();
+                    } else {
+                        alert("Ошибка при удалении фильма");
+                    }
+                })
+                .catch(error => {
+                    console.error("Ошибка:", error);
+                    alert("Ошибка запроса");
+                });
+        });
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+{% endblock %}

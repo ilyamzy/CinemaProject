@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  .theater-flex {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 32px;
+    max-width: 1200px;
+    margin: 40px auto;
+  }
+  .left-panel {
+    min-width: 260px;
+    max-width: 320px;
+    width: 100%;
+    background: #f9f9f9;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.07);
+    text-align: left;
+  }
+  .left-panel label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+  }
+  .left-panel input[type="number"] {
+    padding: 8px;
+    width: 100%;
+    font-size: 1em;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+  }
+  .left-panel button {
+    padding: 10px 20px;
+    background: #007BFF;
+    color: white;
+    border: none;
+    font-size: 1em;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s;
+    margin-top: 10px;
+    margin-right: 10px;
+  }
+  .left-panel button:active, .left-panel button.selected {
+    background: #0056b3;
+  }
+  .left-panel .row {
+    margin-bottom: 15px;
+  }
+  .right-panel {
+    flex: 1 1 0;
+    min-width: 300px;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  /* Экран стал ещё более вогнутым и с градиентом */
+  .screen {
+    width: 100%;
+    max-width: 900px;
+    height: 54px;
+    background: linear-gradient(180deg, #ddd 0%, #bbb 85%, #999 100%);
+    border-radius: 100% 100% 0 0 / 370% 370% 0 0;
+    box-shadow: 0 -16px 42px 8px rgba(0,0,0,0.17);
+    line-height: 54px;
+    font-weight: bold;
+    color: #444;
+    font-size: 1.1em;
+    margin-bottom: 24px;
+    margin-top: 10px;
+    text-align: center;
+    letter-spacing: 0.07em;
+    position: relative;
+    border: 2px solid #bbb;
+    overflow: hidden;
+  }
+  .screen::after {
+    content: "";
+    display: block;
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 6px;
+    height: 16px;
+    border-radius: 100% 100% 0 0 / 120% 120% 0 0;
+    background: linear-gradient(180deg,rgba(255,255,255,0.24) 0%,rgba(255,255,255,0.08) 100%);
+    pointer-events: none;
+  }
+  .seats-wrapper {
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: 3 / 2;
+    background: #f5f5f5;
+    margin-bottom: 40px;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .seats-container {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    gap: 8px;
+    user-select: none;
+    box-sizing: border-box;
+  }
+  .seat {
+    background: #ccc;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.9em;
+    transition: background 0.2s, color 0.2s, opacity 0.2s;
+    min-width: 0;
+    min-height: 0;
+  }
+  .seat.double {
+    background: #ccc;
+    color: #fff;
+    grid-column: span 2;
+    border-radius: 8px;
+  }
+  .seat.hidden {
+    display: none !important;
+  }
+  .seat.to-remove {
+    opacity: 0.5;
+    background: #f00 !important;
+  }
+</style>
+
+
+<div class="theater-flex">
+  <div class="left-panel">
+    <div class="row">
+      <label for="hall-name">Название зала</label>
+      <input type="text" id="hall-name" placeholder="Например, Зал 1">
+    </div>
+    <div class="row">
+      <label for="rows">Количество рядов</label>
+      <input type="number" id="rows" min="1" value="5">
+    </div>
+    <div class="row">
+      <label for="cols">Мест в ряду</label>
+      <input type="number" id="cols" min="1" value="8">
+    </div>
+    <div class="row">
+      <label for="hall-image">Иконка зала</label>
+      <input type="file" id="hall-image" accept="image/*">
+    </div>
+    <div class="row">
+      <button type="button" onclick="saveHall()">Сохранить зал</button>
+    </div>
+    <div style="margin-top:24px;font-size:0.95em;color:#666;">
+      <ul style="padding-left:18px;margin:0;">
+        <li>Клик по месту — объединить/разъединить</li>
+      </ul>
+    </div>
+  </div>
+  <div class="right-panel">
+    <div class="screen">ЭКРАН</div>
+    <div class="seats-wrapper">
+      <div id="seat-map" class="seats-container"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function setSeatsHeight(rows, cols) {
+    const container = document.getElementById("seat-map");
+    const wrapper = container.parentElement;
+    const gap = 8;
+    const w = wrapper.clientWidth - gap * (cols - 1);
+    const h = wrapper.clientHeight - gap * (rows - 1);
+    const cellW = w / cols;
+    const cellH = h / rows;
+    const size = Math.min(cellW, cellH);
+    document.querySelectorAll(".seat").forEach(function(seat) {
+        seat.style.height = size + "px";
+        if (seat.classList.contains("double")) {
+            seat.style.width = (2 * size + gap) + "px";
+        } else {
+            seat.style.width = size + "px";
+        }
+    });
+}
+
+function generateSeats() {
+    const rows = +document.getElementById("rows").value;
+    const cols = +document.getElementById("cols").value;
+    const container = document.getElementById("seat-map");
+    container.innerHTML = "";
+
+    container.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+    for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+            const seat = document.createElement("div");
+            seat.className = "seat single";
+            seat.dataset.row = r;
+            seat.dataset.col = c;
+            seat.onclick = seatClickHandler;
+            container.appendChild(seat);
+        }
+    }
+    setSeatsHeight(rows, cols);
+}
+
+function seatClickHandler(e) {
+    toggleSeat(this);
+}
+
+function toggleSeat(el) {
+    const row = +el.dataset.row;
+    const col = +el.dataset.col;
+    const next = document.querySelector(`.seat[data-row="${row}"][data-col="${col + 1}"]`);
+    if (el.classList.contains("single")) {
+        if (next && next.classList.contains("single")) {
+            el.classList.remove("single");
+            el.classList.add("double");
+            next.classList.add("hidden");
+        }
+    } else if (el.classList.contains("double")) {
+        if (next && next.classList.contains("hidden")) {
+            el.classList.remove("double");
+            el.classList.add("single");
+            next.classList.remove("hidden");
+            next.classList.add("single");
+        }
+    }
+    setSeatsHeight(
+      +document.getElementById("rows").value,
+      +document.getElementById("cols").value
+    );
+}
+
+function saveHall() {
+    const seats = [];
+    document.querySelectorAll(".seat").forEach(function(seat) {
+        const row = +seat.dataset.row;
+        const col = +seat.dataset.col;
+
+        if (seat.classList.contains("hidden")) return;
+
+        seats.push({
+            row: row,
+            col: col,
+            type: seat.classList.contains("double") ? "double" : "single"
+        });
+    });
+
+    const name = document.getElementById("hall-name").value.trim();
+    const rows = +document.getElementById("rows").value;
+    const cols = +document.getElementById("cols").value;
+    const imageInput = document.getElementById("hall-image");
+    const imageFile = imageInput.files[0];
+
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('rows', rows);
+    formData.append('cols', cols);
+    formData.append('seats', JSON.stringify(seats));
+    if (imageFile) {
+        formData.append('image', imageFile);
+    }
+
+    fetch('/halls/save/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            // НЕ ставим Content-Type, fetch сам его проставит для FormData
+        },
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            return response.json();
+        } else {
+            return response.json().then(err => { throw err; });
+        }
+    }).then(result => {
+        alert("Зал сохранён (id: " + result.id + ")");
+    }).catch(err => {
+        alert("Ошибка при сохранении: " + (err && err.error ? err.error : JSON.stringify(err)));
+    });
+}
+
+function updateSeatsOnResize() {
+    const rows = +document.getElementById("rows").value;
+    const cols = +document.getElementById("cols").value;
+    setSeatsHeight(rows, cols);
+}
+window.addEventListener("resize", updateSeatsOnResize);
+
+document.getElementById("rows").oninput = function() {
+  generateSeats();
+}
+document.getElementById("cols").oninput = function() {
+  generateSeats();
+}
+
+window.onload = generateSeats;
+</script>
+
+{% endblock %}

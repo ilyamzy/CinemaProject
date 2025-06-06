@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% load custom_tags %}
+
+<style>
+  .theater-flex {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 32px;
+    max-width: 1200px;
+    margin: 40px auto;
+    flex-wrap: wrap;
+  }
+  .right-panel {
+    flex: 1 1 0;
+    min-width: 300px;
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .screen {
+    width: 100%;
+    max-width: 900px;
+    height: 54px;
+    background: linear-gradient(180deg, #ddd 0%, #bbb 85%, #999 100%);
+    border-radius: 100% 100% 0 0 / 370% 370% 0 0;
+    box-shadow: 0 -16px 42px 8px rgba(0,0,0,0.17);
+    line-height: 54px;
+    font-weight: bold;
+    color: #444;
+    font-size: 1.1em;
+    margin-bottom: 24px;
+    margin-top: 10px;
+    text-align: center;
+    letter-spacing: 0.07em;
+    position: relative;
+    border: 2px solid #bbb;
+    overflow: hidden;
+  }
+  .screen::after {
+    content: "";
+    display: block;
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    top: 6px;
+    height: 16px;
+    border-radius: 100% 100% 0 0 / 120% 120% 0 0;
+    background: linear-gradient(180deg,rgba(255,255,255,0.24) 0%,rgba(255,255,255,0.08) 100%);
+    pointer-events: none;
+  }
+  .seats-wrapper {
+    width: 100%;
+    max-width: 900px;
+    aspect-ratio: 3 / 2;
+    background: #f5f5f5;
+    margin-bottom: 40px;
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .seats-container {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    gap: 8px;
+    user-select: none;
+    box-sizing: border-box;
+    grid-template-columns: repeat({{ cols }}, 1fr);
+    grid-template-rows: repeat({{ rows }}, 1fr);
+  }
+  .seat {
+    background: #ccc;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.9em;
+    transition: background 0.2s, color 0.2s, opacity 0.2s;
+    min-width: 0;
+    min-height: 0;
+  }
+  .seat.double {
+    background: #ccc;
+    color: #fff;
+    grid-column: span 2;
+    border-radius: 8px;
+  }
+  .seat.hidden {
+    display: none !important;
+  }
+</style>
+
+<h2 style="text-align: center;">{{ hall.name }}</h2>
+{% if hall.poster %}
+  <div style="text-align:center; margin-bottom: 20px;">
+    <img src="{{ hall.poster.url }}" alt="poster" style="max-width: 200px;">
+  </div>
+{% endif %}
+
+<div class="theater-flex">
+  <div class="right-panel">
+    <div class="screen">ЭКРАН</div>
+    <div class="seats-wrapper">
+      <div class="seats-container" id="seats">
+        {% for r in rows|times %}
+          {% for c in cols|times %}
+            {% seat_key r c as key %}
+            {% with value=seat_map|get_item:key %}
+              {% if value == 'double' %}
+                <div class="seat double"></div>
+              {% elif value == 'single' %}
+                <div class="seat"></div>
+              {% elif value %}
+                <div class="seat"></div>
+              {% else %}
+                <div class="seat hidden"></div>
+              {% endif %}
+            {% endwith %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function resizeSeats() {
+    const container = document.querySelector(".seats-container");
+    const wrapper = container.parentElement;
+    const gap = 8;
+    const rows = {{ rows }};
+    const cols = {{ cols }};
+
+    const w = wrapper.clientWidth - gap * (cols - 1);
+    const h = wrapper.clientHeight - gap * (rows - 1);
+    const cellSize = Math.min(w / cols, h / rows);
+
+    document.querySelectorAll(".seat").forEach(seat => {
+      seat.style.width = seat.classList.contains("double")
+        ? `${cellSize * 2 + gap}px`
+        : `${cellSize}px`;
+      seat.style.height = `${cellSize}px`;
+    });
+  }
+
+  window.addEventListener("load", resizeSeats);
+  window.addEventListener("resize", resizeSeats);
+</script>
+
+{% endblock %}

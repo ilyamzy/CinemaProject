@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% load static %}
+
+{% block content %}
+
+<style>
+    body {
+        background-color: #f8f9fa;
+    }
+
+    .movie-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 40px;
+        margin-top: 30px;
+    }
+
+    .movie-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
+        background-color: #ffffff;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .movie-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    .movie-card img {
+        width: 100%;
+        height: 500px;
+        object-fit: cover;
+        border-top-left-radius: 12px;
+        border-top-right-radius: 12px;
+    }
+
+    .movie-title {
+        position: absolute;
+        bottom: 50px;
+        left: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        font-weight: bold;
+        font-size: 1.2rem;
+        text-align: center;
+        padding: 10px;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        pointer-events: none;
+    }
+
+    .overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 0;
+        overflow: hidden;
+        transition: height 0.3s ease;
+        display: flex;
+    }
+
+    .movie-card:hover .overlay {
+        height: 50px;
+    }
+
+    .btn-form {
+        margin: 0;
+        padding: 0;
+        width: 50%;
+        height: 100%;
+        display: flex;
+    }
+
+    .btn {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.3s ease;
+        padding: 0;
+    }
+
+    .btn.seances {
+        background-color: #0d6efd;
+        border-bottom-left-radius: 12px;
+        text-decoration: none;
+    }
+
+    .btn.seances:hover {
+        background-color: #0a58ca;
+    }
+
+    .btn.danger {
+        background-color: #dc3545;
+        border-bottom-right-radius: 12px;
+    }
+
+    .btn.danger:hover {
+        background-color: #b02a37;
+    }
+
+    button.btn {
+        all: unset;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        background: #dc3545;
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        border-bottom-right-radius: 12px;
+        cursor: pointer;
+        user-select: none;
+        box-sizing: border-box;
+    }
+
+    .add-button-wrapper {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    .add-movie-button {
+        background-color: #0d6efd;
+        color: white;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+        display: inline-block;
+    }
+
+    .add-movie-button:hover {
+        background-color: #0a58ca;
+        transform: translateY(-2px);
+    }
+
+    h1 {
+        text-align: center;
+        font-size: 2rem;
+        margin-bottom: 10px;
+        margin-top: 10px;
+    }
+
+</style>
+
+<h1>Все фильмы</h1>
+
+<div class="add-button-wrapper">
+    {% if request.user.is_authenticated and request.user.role in 'admin manager' %}
+        <a href="{% url 'movie_add' %}?next={{ request.path }}" class="add-movie-button">Добавить фильм</a>
+    {% endif %}
+</div>
+
+<div class="movie-grid">
+    {% for movie in all_movies %}
+    <div class="movie-card">
+        <a href="{% url 'movie_details' movie.pk %}">
+            <img src="{{ movie.poster.url }}" alt="{{ movie.title }}">
+        </a>
+        <div class="movie-title">{{ movie.title }}</div>
+        <div class="overlay">
+            {% if request.user.is_authenticated and request.user.role in 'admin manager' %}
+                <div class="btn-form">
+                    <a href="#" class="btn seances">Сеансы</a>
+                </div>
+                <form method="post" action="{% url 'delete_movie' movie.pk %}" class="btn-form">
+                    {% csrf_token %}
+                    <button type="button" class="btn danger delete_movie" data-id="{{ movie.pk }}">Удалить</button>
+                </form>
+            {% else %}
+                <div class="btn-form" style="width:100%;">
+                    <a href="#" class="btn seances" style="width:100%;border-bottom-right-radius:12px;">Сеансы</a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    document.querySelectorAll('.delete_movie').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const movieId = this.dataset.id;
+            const card = this.closest('.movie-card');
+
+            if (!confirm("Вы уверены, что хотите удалить фильм?")) return;
+
+            fetch(`/posters/movie/${movieId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json'
+                },
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        card.remove();
+                    } else {
+                        alert("Ошибка при удалении фильма");
+                    }
+                })
+                .catch(error => {
+                    console.error("Ошибка:", error);
+                    alert("Ошибка запроса");
+                });
+        });
+    });
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+
+{% endblock %}

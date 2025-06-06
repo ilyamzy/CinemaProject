@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .select-seats-container {
+        max-width: 900px;
+        margin: 20px auto;
+        padding: 20px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+    }
+    .session-info {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+    .session-info h2 {
+        font-size: 2em;
+        color: #333;
+        margin-bottom: 10px;
+    }
+    .session-info p {
+        font-size: 1.1em;
+        color: #555;
+    }
+    .hall-schema {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .screen {
+        width: 80%;
+        padding: 10px;
+        background-color: #333;
+        color: white;
+        text-align: center;
+        margin-bottom: 30px;
+        border-radius: 4px;
+        font-size: 1.2em;
+    }
+    .hall-row {
+        display: flex;
+        margin-bottom: 8px;
+    }
+    .seat {
+        width: 35px;
+        height: 35px;
+        margin: 3px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        background-color: #e0e0e0; /* Default for available */
+        transition: background-color 0.3s ease;
+        font-size: 0.8em;
+    }
+    .seat.booked {
+        background-color: #f44336; /* Red for booked */
+        cursor: not-allowed;
+        color: white;
+    }
+    .seat.selected {
+        background-color: #4CAF50; /* Green for selected */
+        color: white;
+        border-color: #388E3C;
+    }
+    .seat input[type="checkbox"] {
+        display: none; /* Hide actual checkbox */
+    }
+    .legend {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 30px;
+        margin-bottom: 20px;
+    }
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .legend-color {
+        width: 20px;
+        height: 20px;
+        border-radius: 3px;
+    }
+    .booking-form {
+        text-align: center;
+        margin-top: 30px;
+    }
+    .btn-book-seats {
+        background-color: #007BFF;
+        color: white;
+        padding: 12px 30px;
+        font-size: 1.1rem;
+        font-weight: 500;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-book-seats:hover {
+        background-color: #0056b3;
+        transform: translateY(-2px);
+    }
+</style>
+
+<div class="select-seats-container">
+    <div class="session-info">
+        <h2>{{ session.movie.title }}</h2>
+        <p><strong>Время:</strong> {{ session.start_time|time:"H:i" }}</p>
+        <p><strong>Зал:</strong> {{ session.hall.name }}</p>
+    </div>
+
+    <div class="hall-schema">
+        <div class="screen">Экран</div>
+        
+        {% regroup seats_in_hall by row as seats_by_row %}
+        {% for row_group in seats_by_row %}
+            <div class="hall-row">
+                {% for seat_obj in row_group.list %}
+                    <label class="seat {% if seat_obj.id in booked_seat_ids %}booked{% endif %}"
+                           for="seat-{{ seat_obj.id }}"
+                           data-seat-id="{{ seat_obj.id }}">
+                        {{ seat_obj.row }}-{{ seat_obj.col }}
+                        {% if seat_obj.id not in booked_seat_ids %}
+                            <input type="checkbox" name="selected_seats" value="{{ seat_obj.id }}" id="seat-{{ seat_obj.id }}">
+                        {% endif %}
+                    </label>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #e0e0e0; border: 1px solid #ccc;"></div>
+            <span>Свободно</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #4CAF50;"></div>
+            <span>Выбрано</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background-color: #f44336;"></div>
+            <span>Занято</span>
+        </div>
+    </div>
+
+    <form method="post" action="#" class="booking-form">
+        {% csrf_token %}
+        <div id="selected-seats-hidden-inputs"></div>
+        <button type="submit" class="btn-book-seats">Забронировать выбранные места</button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const seats = document.querySelectorAll('.seat:not(.booked)');
+    const bookingForm = document.querySelector('.booking-form');
+    const hiddenInputsContainer = document.getElementById('selected-seats-hidden-inputs');
+
+    seats.forEach(seatLabel => {
+        const checkbox = seatLabel.querySelector('input[type="checkbox"]');
+        seatLabel.addEventListener('click', function (event) {
+            // Prevent label click from triggering twice if checkbox is inside
+            if (event.target.tagName === 'INPUT') return;
+
+            if (checkbox) { // Only if not booked
+                checkbox.checked = !checkbox.checked;
+                seatLabel.classList.toggle('selected', checkbox.checked);
+                updateHiddenFormInputs();
+            }
+        });
+    });
+
+    function updateHiddenFormInputs() {
+        hiddenInputsContainer.innerHTML = ''; // Clear previous inputs
+        const selectedCheckboxes = document.querySelectorAll('.seat input[type="checkbox"]:checked');
+        selectedCheckboxes.forEach(cb => {
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'selected_seats';
+            hiddenInput.value = cb.value;
+            hiddenInputsContainer.appendChild(hiddenInput);
+        });
+    }
+
+    // If form submission is handled via JS/AJAX later, you can add listeners here
+    // For now, it will submit normally, and selected_seats will be in POST data
+});
+</script>
+
+{% endblock %} 

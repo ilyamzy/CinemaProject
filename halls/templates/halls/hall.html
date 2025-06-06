@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>{{ hall.name }}</h2>
+
+<div class="seating">
+  {% for seat in seats %}
+    {% if forloop.first or seat.row != previous_row %}
+      {% if not forloop.first %}</div>{% endif %}
+      <div class="seat-row">
+      {% with seat.row as previous_row %}
+      {% endwith %}
+    {% endif %}
+    <button
+      class="seat {{ seat.category }} {% if seat.is_reserved %}reserved{% endif %}"
+      data-seat-id="{{ seat.id }}"
+      {% if seat.is_reserved %}disabled{% endif %}
+    >
+      {{ seat.row }}-{{ seat.column }}
+    </button>
+  {% endfor %}
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<style>
+  form {
+    max-width: 600px;
+    margin: 20px auto;
+    font-family: Arial, sans-serif;
+  }
+
+  h1 {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    font-weight: bold;
+    margin-top: 12px;
+    margin-bottom: 5px;
+  }
+
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  textarea {
+    width: 100%;
+    padding: 8px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  button {
+    margin-top: 20px;
+    padding: 10px 15px;
+    font-size: 1em;
+    cursor: pointer;
+  }
+
+  .genre-option {
+    display: inline-block;
+    padding: 5px 10px;
+    margin: 3px;
+    border-radius: 15px;
+    background-color: #eee;
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+    font-size: 0.9em;
+  }
+
+  .genre-option.selected {
+    background-color: #007BFF;
+    color: white;
+  }
+
+  .genre-header {
+    display: flex;
+    align-items: baseline;
+    margin-top: 8px;
+    margin-bottom: 5px;
+  }
+
+  .genre-header span {
+    font-weight: bold;
+    font-size: 1em;
+    margin-right: 10px;
+  }
+
+  .add-genre-btn {
+    padding: 0;
+    width: 22px;
+    height: 22px;
+    font-size: 1.1em;
+    background-color: transparent;
+    border: 1px solid #007BFF;
+    color: #007BFF;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    transform: translateY(-1px);
+  }
+
+  .add-genre-btn:hover {
+    background-color: #007BFF;
+    color: white;
+  }
+
+  #genre-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.4);
+  }
+
+  .genre-modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border-radius: 8px;
+    width: 300px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    text-align: center;
+  }
+
+  .close-modal {
+    float: right;
+    font-size: 1.2em;
+    font-weight: bold;
+    cursor: pointer;
+    color: #aaa;
+  }
+
+  .close-modal:hover {
+    color: #000;
+  }
+
+  #new-genre-name {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 15px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+
+  #save-genre-btn {
+    padding: 10px 20px;
+    font-size: 1em;
+    cursor: pointer;
+  }
+</style>
+
+<h1>Добавить фильм</h1>
+
+<form method="post" enctype="multipart/form-data" id="movie_form">
+  {% csrf_token %}
+
+  <label for="{{ form.title.id_for_label }}">Название</label>
+  {{ form.title }}
+
+  <label for="{{ form.country.id_for_label }}">Страна</label>
+  {{ form.country }}
+
+  <div class="genre-header">
+    <span>Жанры</span>
+    <button type="button" class="add-genre-btn" id="add-genre-btn" title="Добавить жанр">+</button>
+  </div>
+
+  <div id="genre-select">
+    {% for genre in genres %}
+      <div class="genre-option" data-id="{{ genre.id }}">{{ genre.name }}</div>
+    {% endfor %}
+  </div>
+
+  <!-- Убираем скрытое поле, теперь оно не нужно -->
+
+  <label for="{{ form.duration.id_for_label }}">Длительность</label>
+  {{ form.duration }}
+
+  <label for="{{ form.budget.id_for_label }}">Бюджет</label>
+  {{ form.budget }}
+
+  <label for="{{ form.poster.id_for_label }}">Постер</label>
+  {{ form.poster }}
+
+  <label for="{{ form.description.id_for_label }}">Описание</label>
+  {{ form.description }}
+
+  <label for="{{ form.rating.id_for_label }}">Рейтинг</label>
+  {{ form.rating }}
+
+  <label for="{{ form.release_date.id_for_label }}">Дата релиза</label>
+  {{ form.release_date }}
+
+  <input type="hidden" name="next" value="{{ request.GET.next|default:'' }}">
+  <button type="submit">Добавить</button>
+</form>
+
+<!-- Модальное окно для добавления нового жанра -->
+<div id="genre-modal">
+  <div class="genre-modal-content">
+    <span class="close-modal" id="close-genre-modal">&times;</span>
+    <h3>Новый жанр</h3>
+    <input type="text" id="new-genre-name" placeholder="Введите жанр" />
+    <button type="button" id="save-genre-btn">Сохранить</button>
+  </div>
+</div>
+
+<script>
+  const genreContainer = document.getElementById('genre-select');
+  let selectedGenres = new Set();
+
+  function updateGenreInputs() {
+    // Удаляем все старые скрытые поля genre из формы
+    document.querySelectorAll('input[name="genre"]').forEach(input => input.remove());
+
+    // Добавляем скрытые поля по одному на каждый выбранный жанр
+    selectedGenres.forEach(id => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'genre';
+      input.value = id;
+      document.getElementById('movie_form').appendChild(input);
+    });
+  }
+
+  function addGenreClickListener(div, id) {
+    div.addEventListener('click', () => {
+      if (selectedGenres.has(id)) {
+        selectedGenres.delete(id);
+        div.classList.remove('selected');
+      } else {
+        selectedGenres.add(id);
+        div.classList.add('selected');
+      }
+      updateGenreInputs();
+    });
+  }
+
+  // Инициализируем клики по существующим жанрам
+  document.querySelectorAll('.genre-option').forEach(div => {
+    const id = parseInt(div.dataset.id);
+    addGenreClickListener(div, id);
+  });
+
+  // Начальное обновление скрытых полей (если нужны дефолтные значения)
+  updateGenreInputs();
+
+  const modal = document.getElementById('genre-modal');
+  const openModalBtn = document.getElementById('add-genre-btn');
+  const closeModalBtn = document.getElementById('close-genre-modal');
+  const saveGenreBtn = document.getElementById('save-genre-btn');
+  const newGenreInput = document.getElementById('new-genre-name');
+
+  openModalBtn.onclick = () => {
+    modal.style.display = 'block';
+  }
+
+  closeModalBtn.onclick = () => {
+    modal.style.display = 'none';
+    newGenreInput.value = '';
+  }
+
+  window.onclick = (event) => {
+    if (event.target === modal) {
+      modal.style.display = 'none';
+      newGenreInput.value = '';
+    }
+  }
+
+  saveGenreBtn.onclick = () => {
+    const name = newGenreInput.value.trim();
+    if (name === '') return;
+
+    fetch("{% url 'add_genre' %}", {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': '{{ csrf_token }}',
+      },
+      body: JSON.stringify({ name }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const newDiv = document.createElement('div');
+        newDiv.className = 'genre-option selected';
+        newDiv.dataset.id = data.id;
+        newDiv.textContent = name;
+
+        addGenreClickListener(newDiv, data.id);
+        genreContainer.appendChild(newDiv);
+
+        selectedGenres.add(data.id);
+        updateGenreInputs();
+
+        newGenreInput.value = '';
+        modal.style.display = 'none';
+      } else {
+        alert('Ошибка при добавлении жанра');
+      }
+    })
+    .catch(() => alert('Ошибка соединения с сервером'));
+  }
+</script>
+
+{% endblock %}

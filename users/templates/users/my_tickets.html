@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<style>
+    .tickets-container {
+        max-width: 1000px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+    .ticket-category h2 {
+        font-size: 1.8em;
+        color: #333;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+    }
+    .ticket-list {
+        list-style: none;
+        padding: 0;
+    }
+    .ticket-item {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        margin-bottom: 15px;
+        padding: 20px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .ticket-info {
+        flex-basis: 70%;
+    }
+    .ticket-info h4 {
+        font-size: 1.3em;
+        color: #007BFF;
+        margin-top: 0;
+        margin-bottom: 8px;
+    }
+    .ticket-info p {
+        margin: 5px 0;
+        color: #555;
+    }
+    .ticket-actions {
+        flex-basis: 25%;
+        text-align: right;
+    }
+    .btn-pay {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: 500;
+        transition: background-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+    .btn-pay:hover {
+        background-color: #218838;
+    }
+    .no-tickets {
+        color: #777;
+        font-style: italic;
+    }
+</style>
+
+<div class="tickets-container">
+    <h1>{{ title }}</h1>
+
+    <div class="ticket-category">
+        <h2>Забронированные билеты</h2>
+        {% if reserved_tickets %}
+            <ul class="ticket-list">
+                {% for ticket in reserved_tickets %}
+                    <li class="ticket-item">
+                        <div class="ticket-info">
+                            <h4>{{ ticket.session.movie.title }}</h4>
+                            <p><strong>Дата и время:</strong> {{ ticket.session.start_time|date:"d.m.Y H:i" }}</p>
+                            <p><strong>Зал:</strong> {{ ticket.session.hall.name }}</p>
+                            <p><strong>Место:</strong> Ряд {{ ticket.seat.row }}, Место {{ ticket.seat.col }}</p>
+                            <p><strong>Цена:</strong> {{ ticket.price }} руб.</p>
+                        </div>
+                        <div class="ticket-actions">
+                            <a href="#" class="btn-pay">Оплатить</a> {# TODO: Ссылка на оплату #}
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-tickets">У вас нет активных забронированных билетов.</p>
+        {% endif %}
+    </div>
+
+    <div class="ticket-category">
+        <h2>Оплаченные билеты</h2>
+        {% if paid_tickets %}
+            <ul class="ticket-list">
+                {% for ticket in paid_tickets %}
+                    <li class="ticket-item">
+                        <div class="ticket-info">
+                            <h4>{{ ticket.session.movie.title }}</h4>
+                            <p><strong>Дата и время:</strong> {{ ticket.session.start_time|date:"d.m.Y H:i" }}</p>
+                            <p><strong>Зал:</strong> {{ ticket.session.hall.name }}</p>
+                            <p><strong>Место:</strong> Ряд {{ ticket.seat.row }}, Место {{ ticket.seat.col }}</p>
+                            <p><strong>Статус:</strong> Оплачено</p>
+                        </div>
+                        {# Можно добавить кнопку для печати/QR-кода #}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-tickets">У вас нет оплаченных билетов на предстоящие сеансы.</p>
+        {% endif %}
+    </div>
+
+    <div class="ticket-category">
+        <h2>История билетов (прошедшие сеансы)</h2>
+        {% if past_tickets %}
+            <ul class="ticket-list">
+                {% for ticket in past_tickets %}
+                    <li class="ticket-item">
+                        <div class="ticket-info">
+                            <h4>{{ ticket.session.movie.title }}</h4>
+                            <p><strong>Дата и время:</strong> {{ ticket.session.start_time|date:"d.m.Y H:i" }}</p>
+                            <p><strong>Зал:</strong> {{ ticket.session.hall.name }}</p>
+                            <p><strong>Место:</strong> Ряд {{ ticket.seat.row }}, Место {{ ticket.seat.col }}</p>
+                            <p><strong>Статус:</strong> {% if ticket.is_paid %}Посещено (оплачено){% elif ticket.is_reserved %}Не посещено (было забронировано){% else %}N/A{% endif %}</p>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="no-tickets">У вас нет билетов на прошедшие сеансы.</p>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %} 
