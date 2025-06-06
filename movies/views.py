@@ -55,8 +55,12 @@ class MovieCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 @method_decorator(require_POST, name='dispatch')
 class AddGenreView(View):
     def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Некорректный JSON'}, status=400)
 
-        serializer = serializers.GenreSerializer(data=request.body)
+        serializer = serializers.GenreSerializer(data=data)
         if not serializer.is_valid():
             return JsonResponse({'success': False, 'errors': serializer.errors}, status=400)
 

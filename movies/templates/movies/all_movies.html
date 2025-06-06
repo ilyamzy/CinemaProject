@@ -204,7 +204,7 @@
 
             if (!confirm("Вы уверены, что хотите удалить фильм?")) return;
 
-            fetch(`/posters/movie/${movieId}/delete/`, {
+            fetch(`${movieId}/delete/`, {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken'),
